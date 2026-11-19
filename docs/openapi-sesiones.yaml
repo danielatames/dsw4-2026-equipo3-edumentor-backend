@@ -1,0 +1,337 @@
+# Endpoints de sesiones de tutoría (Persona 3).
+# Está en un archivo aparte para no pisar el trabajo de los demás;
+# al integrar, las secciones "paths" y "components" se copian a docs/openapi.yaml.
+openapi: 3.0.3
+info:
+  title: EduMentor Hub - Sesiones de tutoría
+  version: 0.0.1
+tags:
+  - name: Sesiones
+    description: Solicitud, aceptación y seguimiento de sesiones de tutoría
+security:
+  - bearerAuth: []
+
+paths:
+  /sesiones:
+    get:
+      tags: [Sesiones]
+      summary: Listar sesiones según el rol
+      description: >
+        ESTUDIANTE ve las sesiones que solicitó, TUTOR las que le pidieron a él
+        y COORDINADOR ve todas. Se puede filtrar por estado.
+      parameters:
+        - name: estado
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/EstadoSesion'
+      responses:
+        '200':
+          description: Lista de sesiones ordenada de la más reciente a la más antigua
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SesionResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+    post:
+      tags: [Sesiones]
+      summary: Solicitar una sesión (solo ESTUDIANTE)
+      description: >
+        Crea la sesión en estado SOLICITADA. Valida que la fecha sea futura,
+        que la sesión quepa en un bloque de disponibilidad del tutor y que no se
+        traslape con otra sesión activa del tutor ni del estudiante.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SesionRequest'
+      responses:
+        '201':
+          description: Sesión creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SesionResponse'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/AccesoDenegado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          description: La sesión se traslapa con otra del tutor o del estudiante
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '422':
+          description: Fecha en el pasado o el tutor no tiene disponibilidad en ese horario
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
+  /sesiones/{id}:
+    get:
+      tags: [Sesiones]
+      summary: Obtener una sesión
+      description: Solo la ven el estudiante y el tutor de la sesión, o el COORDINADOR.
+      parameters:
+        - $ref: '#/components/parameters/SesionId'
+      responses:
+        '200':
+          description: Sesión encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SesionResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/AccesoDenegado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+
+  /sesiones/{id}/aceptar:
+    patch:
+      tags: [Sesiones]
+      summary: Aceptar una solicitud (solo el TUTOR de la sesión)
+      description: Pasa la sesión de SOLICITADA a ACEPTADA.
+      parameters:
+        - $ref: '#/components/parameters/SesionId'
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionActualizada'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/AccesoDenegado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/TransicionInvalida'
+
+  /sesiones/{id}/rechazar:
+    patch:
+      tags: [Sesiones]
+      summary: Rechazar una solicitud (solo el TUTOR de la sesión)
+      description: Pasa la sesión de SOLICITADA a RECHAZADA.
+      parameters:
+        - $ref: '#/components/parameters/SesionId'
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionActualizada'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/AccesoDenegado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/TransicionInvalida'
+
+  /sesiones/{id}/cancelar:
+    patch:
+      tags: [Sesiones]
+      summary: Cancelar una sesión (estudiante o tutor de la sesión)
+      description: >
+        Pasa la sesión de SOLICITADA o ACEPTADA a CANCELADA.
+        Solo se permite si faltan 2 horas o más para que empiece.
+      parameters:
+        - $ref: '#/components/parameters/SesionId'
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionActualizada'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/AccesoDenegado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/TransicionInvalida'
+        '422':
+          description: Faltan menos de 2 horas para que empiece la sesión
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
+  /sesiones/{id}/iniciar:
+    patch:
+      tags: [Sesiones]
+      summary: Iniciar una sesión (solo el TUTOR de la sesión)
+      description: Pasa la sesión de ACEPTADA a EN_CURSO.
+      parameters:
+        - $ref: '#/components/parameters/SesionId'
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionActualizada'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/AccesoDenegado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/TransicionInvalida'
+
+  /sesiones/{id}/concluir:
+    patch:
+      tags: [Sesiones]
+      summary: Concluir una sesión (solo el TUTOR de la sesión)
+      description: Pasa la sesión de EN_CURSO a CONCLUIDA.
+      parameters:
+        - $ref: '#/components/parameters/SesionId'
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionActualizada'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/AccesoDenegado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/TransicionInvalida'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    SesionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+  schemas:
+    EstadoSesion:
+      type: string
+      enum: [SOLICITADA, ACEPTADA, RECHAZADA, CANCELADA, EN_CURSO, CONCLUIDA]
+    SesionRequest:
+      type: object
+      required: [tutorId, materiaId, fechaHora, duracionMinutos]
+      properties:
+        tutorId:
+          type: integer
+          format: int64
+          example: 2
+        materiaId:
+          type: integer
+          format: int64
+          example: 1
+        fechaHora:
+          type: string
+          format: date-time
+          description: Inicio de la sesión, sin zona horaria (hora de Costa Rica)
+          example: '2026-11-23T08:00:00'
+        duracionMinutos:
+          type: integer
+          minimum: 30
+          maximum: 180
+          example: 60
+        tema:
+          type: string
+          maxLength: 300
+          example: Repaso de JOINs
+    SesionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        estudianteId:
+          type: integer
+          format: int64
+        estudianteNombre:
+          type: string
+        tutorId:
+          type: integer
+          format: int64
+        tutorNombre:
+          type: string
+        materiaId:
+          type: integer
+          format: int64
+        materiaNombre:
+          type: string
+        fechaHora:
+          type: string
+          format: date-time
+        fechaFin:
+          type: string
+          format: date-time
+        duracionMinutos:
+          type: integer
+        estado:
+          $ref: '#/components/schemas/EstadoSesion'
+        tema:
+          type: string
+          nullable: true
+    ProblemDetail:
+      type: object
+      description: Error en formato RFC 7807
+      properties:
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        errores:
+          type: object
+          additionalProperties:
+            type: string
+
+  responses:
+    SesionActualizada:
+      description: Sesión con su nuevo estado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SesionResponse'
+    TransicionInvalida:
+      description: El estado actual de la sesión no permite esta acción
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    SolicitudInvalida:
+      description: Campos inválidos
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    NoAutenticado:
+      description: Falta el token JWT o no es válido
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    AccesoDenegado:
+      description: El rol o el usuario no tiene permiso para esta acción
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    NoEncontrado:
+      description: El recurso no existe
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
