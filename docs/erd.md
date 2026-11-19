@@ -11,6 +11,17 @@ erDiagram
         VARCHAR_80 apellido "NOT NULL"
         VARCHAR_20 rol "NOT NULL: ESTUDIANTE, TUTOR, COORDINADOR"
     }
+    SESION_TUTORIA {
+        BIGINT id PK
+        BIGINT estudiante_id FK "NOT NULL"
+        BIGINT tutor_id FK "NOT NULL"
+        BIGINT materia_id FK "NOT NULL"
+        TIMESTAMP fecha_hora "NOT NULL, inicio de la sesion"
+        INT duracion_minutos "NOT NULL, entre 30 y 180"
+        VARCHAR_20 estado "NOT NULL: SOLICITADA, ACEPTADA, RECHAZADA, CANCELADA, EN_CURSO, CONCLUIDA"
+        VARCHAR_300 tema
+        TIMESTAMP fecha_creacion "NOT NULL"
+    }
     RECURSO_ESTUDIO {
         BIGINT id PK
         BIGINT sesion_id FK "NOT NULL"
@@ -28,6 +39,7 @@ erDiagram
     USUARIO ||--o{ DISPONIBILIDAD_TUTOR : "tutor tiene (1:N)"
     USUARIO ||--o{ SESION_TUTORIA : "estudiante solicita (1:N)"
     USUARIO ||--o{ SESION_TUTORIA : "tutor atiende (1:N)"
+    MATERIA ||--o{ SESION_TUTORIA : "se trata de (1:N)"
     SESION_TUTORIA ||--o{ RECURSO_ESTUDIO : "tiene (1:N)"
     SESION_TUTORIA ||--o| EVALUACION_TUTORIA : "recibe (1:0..1)"
 ```
