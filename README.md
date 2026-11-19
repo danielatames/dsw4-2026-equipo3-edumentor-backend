@@ -1,4 +1,4 @@
-﻿# EduMentor Hub - Backend
+# EduMentor Hub - Backend
 
 API REST de la plataforma de tutorías académicas entre pares.
 Spring Boot 3, Spring Data JPA, Spring Security + JWT y H2.
@@ -30,13 +30,17 @@ Consola H2: http://localhost:8080/h2-console
    Ambas respuestas usan el formato RFC 7807 (Problem Details).
 
 Endpoints actuales: `POST /auth/login`, `POST /auth/register`, `GET /usuarios/me`.
+
+Sesiones de tutoría (`/sesiones`): `GET /sesiones`, `GET /sesiones/{id}`, `POST /sesiones` (ESTUDIANTE),
+`PATCH /sesiones/{id}/aceptar|rechazar|iniciar|concluir` (TUTOR) y `PATCH /sesiones/{id}/cancelar` (ESTUDIANTE o TUTOR).
+Detalle en `docs/openapi-sesiones.yaml`.
 El rol COORDINADOR no puede autorregistrarse.
 
 ## Frontend
 Repositorio `dsw4-2026-equipo3-edumentor-frontend`. Corre en http://localhost:4200 y necesita este backend activo.
 
 ## Documentación
-- Especificación OpenAPI: `docs/openapi.yaml`
+- Especificación OpenAPI: `docs/openapi.yaml` (sesiones en `docs/openapi-sesiones.yaml`)
 - Modelo Entidad-Relación: `docs/erd.md`
 
 ## Flujo de trabajo en Git
