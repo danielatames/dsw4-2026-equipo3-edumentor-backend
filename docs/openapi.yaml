@@ -1,0 +1,231 @@
+openapi: 3.0.3
+info:
+  title: EduMentor Hub API
+  version: 1.0.0
+  description: >
+    API REST de la plataforma de tutorías académicas entre pares.
+    Todas las respuestas de error siguen el estándar RFC 7807 (Problem Details).
+servers:
+  - url: http://localhost:8080
+    description: Desarrollo local
+tags:
+  - name: Auth
+    description: Registro e inicio de sesión
+  - name: Usuarios
+    description: Datos del usuario autenticado
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sesión
+      description: Valida las credenciales y devuelve un token JWT.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Inicio de sesión exitoso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Registrar un usuario
+      description: >
+        Crea una cuenta y devuelve un token JWT. El rol COORDINADOR no
+        puede autorregistrarse (respuesta 403).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Usuario creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /usuarios/me:
+    get:
+      tags: [Usuarios]
+      summary: Perfil del usuario autenticado
+      responses:
+        '200':
+          description: Datos del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Enviar el token en el encabezado `Authorization Bearer <token>`.
+
+  schemas:
+    Rol:
+      type: string
+      enum: [ESTUDIANTE, TUTOR, COORDINADOR]
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: tutor@ucr.ac.cr
+        password:
+          type: string
+          example: Tutor123*
+
+    RegisterRequest:
+      type: object
+      required: [carne, email, password, nombre, apellido, rol]
+      properties:
+        carne:
+          type: string
+          maxLength: 20
+          example: C12345
+        email:
+          type: string
+          format: email
+          example: nuevo@ucr.ac.cr
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+        nombre:
+          type: string
+          maxLength: 80
+        apellido:
+          type: string
+          maxLength: 80
+        rol:
+          $ref: '#/components/schemas/Rol'
+
+    UsuarioResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        carne:
+          type: string
+        email:
+          type: string
+          format: email
+        nombre:
+          type: string
+        apellido:
+          type: string
+        rol:
+          $ref: '#/components/schemas/Rol'
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: Token JWT firmado
+        tipo:
+          type: string
+          example: Bearer
+        usuario:
+          $ref: '#/components/schemas/UsuarioResponse'
+
+    ProblemDetail:
+      type: object
+      description: Error según RFC 7807
+      properties:
+        type:
+          type: string
+          format: uri
+          example: about:blank
+        title:
+          type: string
+          example: No autenticado
+        status:
+          type: integer
+          example: 401
+        detail:
+          type: string
+          example: Se requiere un token JWT válido
+        instance:
+          type: string
+          example: /usuarios/me
+
+  responses:
+    BadRequest:
+      description: Solicitud inválida (validación de campos)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    Unauthorized:
+      description: No autenticado o credenciales inválidas
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    Forbidden:
+      description: Sin permisos para esta operación
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    Conflict:
+      description: Conflicto con el estado actual (por ejemplo, email o carné duplicado)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    InternalError:
+      description: Error interno del servidor
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
