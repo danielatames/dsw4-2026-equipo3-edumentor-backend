@@ -29,22 +29,38 @@ Consola H2: http://localhost:8080/h2-console
 3. Sin token válido la API responde 401; con un rol sin permisos, 403.
    Ambas respuestas usan el formato RFC 7807 (Problem Details).
 
-Endpoints actuales: `POST /auth/login`, `POST /auth/register`, `GET /usuarios/me`.
-
-Sesiones de tutoría (`/sesiones`): `GET /sesiones`, `GET /sesiones/{id}`, `POST /sesiones` (ESTUDIANTE),
-`PATCH /sesiones/{id}/aceptar|rechazar|iniciar|concluir` (TUTOR) y `PATCH /sesiones/{id}/cancelar` (ESTUDIANTE o TUTOR).
-Detalle en `docs/openapi-sesiones.yaml`.
-
-Recursos de estudio: `GET /sesiones/{id}/recursos`, `POST /sesiones/{id}/recursos` y `DELETE /sesiones/{id}/recursos/{recursoId}` (TUTOR de la sesión).
-Evaluaciones: `POST /sesiones/{id}/evaluacion` (ESTUDIANTE de la sesión concluida), `GET /sesiones/{id}/evaluacion` y `GET /tutores/{id}/calificacion`.
-Detalle en `docs/openapi-recursos-evaluaciones.yaml`.
+Endpoints: `POST /auth/login`, `POST /auth/register`, `GET /usuarios/me`.
 El rol COORDINADOR no puede autorregistrarse.
+
+## Sesiones de tutoría
+`GET /sesiones`, `GET /sesiones/{id}`, `POST /sesiones` (ESTUDIANTE),
+`PATCH /sesiones/{id}/aceptar|rechazar|iniciar|concluir` (TUTOR) y
+`PATCH /sesiones/{id}/cancelar` (ESTUDIANTE o TUTOR de la sesión).
+
+## Recursos de estudio y evaluaciones
+- Recursos: `GET /sesiones/{id}/recursos`, `POST /sesiones/{id}/recursos` y
+  `DELETE /sesiones/{id}/recursos/{recursoId}` (TUTOR de la sesión).
+- Evaluaciones: `POST /sesiones/{id}/evaluacion` (ESTUDIANTE de la sesión concluida),
+  `GET /sesiones/{id}/evaluacion` y `GET /tutores/{id}/calificacion`.
+
+## Estados de la sesión
+El ciclo de vida del enunciado se implementa con nombres en español:
+
+| Enunciado | API |
+|---|---|
+| REQUESTED | SOLICITADA |
+| CONFIRMED | ACEPTADA |
+| REJECTED | RECHAZADA |
+| CANCELLED | CANCELADA |
+| IN_SESSION | EN_CURSO |
+| COMPLETED | CONCLUIDA |
+| REVIEWED | EVALUADA |
 
 ## Frontend
 Repositorio `dsw4-2026-equipo3-edumentor-frontend`. Corre en http://localhost:4200 y necesita este backend activo.
 
 ## Documentación
-- Especificación OpenAPI: `docs/openapi.yaml` (sesiones en `docs/openapi-sesiones.yaml`, recursos y evaluaciones en `docs/openapi-recursos-evaluaciones.yaml`)
+- Especificación OpenAPI: `docs/openapi.yaml` (documento único con todos los endpoints)
 - Modelo Entidad-Relación: `docs/erd.md`
 
 ## Flujo de trabajo en Git
