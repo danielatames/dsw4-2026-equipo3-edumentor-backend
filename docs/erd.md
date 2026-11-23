@@ -10,6 +10,8 @@ erDiagram
         VARCHAR_80 nombre "NOT NULL"
         VARCHAR_80 apellido "NOT NULL"
         VARCHAR_20 rol "NOT NULL: ESTUDIANTE, TUTOR, COORDINADOR"
+        DOUBLE promedio_calificacion "promedio acumulado del tutor"
+        INT total_evaluaciones "cantidad de evaluaciones recibidas"
     }
     SESION_TUTORIA {
         BIGINT id PK
@@ -18,7 +20,7 @@ erDiagram
         BIGINT materia_id FK "NOT NULL"
         TIMESTAMP fecha_hora "NOT NULL, inicio de la sesion"
         INT duracion_minutos "NOT NULL, entre 30 y 180"
-        VARCHAR_20 estado "NOT NULL: SOLICITADA, ACEPTADA, RECHAZADA, CANCELADA, EN_CURSO, CONCLUIDA"
+        VARCHAR_20 estado "NOT NULL: SOLICITADA, ACEPTADA, RECHAZADA, CANCELADA, EN_CURSO, CONCLUIDA, EVALUADA"
         VARCHAR_300 tema
         TIMESTAMP fecha_creacion "NOT NULL"
     }

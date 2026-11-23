@@ -34,13 +34,17 @@ Endpoints actuales: `POST /auth/login`, `POST /auth/register`, `GET /usuarios/me
 Sesiones de tutoría (`/sesiones`): `GET /sesiones`, `GET /sesiones/{id}`, `POST /sesiones` (ESTUDIANTE),
 `PATCH /sesiones/{id}/aceptar|rechazar|iniciar|concluir` (TUTOR) y `PATCH /sesiones/{id}/cancelar` (ESTUDIANTE o TUTOR).
 Detalle en `docs/openapi-sesiones.yaml`.
+
+Recursos de estudio: `GET /sesiones/{id}/recursos`, `POST /sesiones/{id}/recursos` y `DELETE /sesiones/{id}/recursos/{recursoId}` (TUTOR de la sesión).
+Evaluaciones: `POST /sesiones/{id}/evaluacion` (ESTUDIANTE de la sesión concluida), `GET /sesiones/{id}/evaluacion` y `GET /tutores/{id}/calificacion`.
+Detalle en `docs/openapi-recursos-evaluaciones.yaml`.
 El rol COORDINADOR no puede autorregistrarse.
 
 ## Frontend
 Repositorio `dsw4-2026-equipo3-edumentor-frontend`. Corre en http://localhost:4200 y necesita este backend activo.
 
 ## Documentación
-- Especificación OpenAPI: `docs/openapi.yaml` (sesiones en `docs/openapi-sesiones.yaml`)
+- Especificación OpenAPI: `docs/openapi.yaml` (sesiones en `docs/openapi-sesiones.yaml`, recursos y evaluaciones en `docs/openapi-recursos-evaluaciones.yaml`)
 - Modelo Entidad-Relación: `docs/erd.md`
 
 ## Flujo de trabajo en Git

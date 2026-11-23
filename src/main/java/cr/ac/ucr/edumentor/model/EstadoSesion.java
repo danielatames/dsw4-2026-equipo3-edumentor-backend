@@ -7,7 +7,8 @@ public enum EstadoSesion {
     RECHAZADA,
     CANCELADA,
     EN_CURSO,
-    CONCLUIDA;
+    CONCLUIDA,
+    EVALUADA;
 
     // Devuelve true si desde este estado se permite pasar al estado destino.
     public boolean puedePasarA(EstadoSesion destino) {
@@ -15,7 +16,8 @@ public enum EstadoSesion {
             case SOLICITADA -> destino == ACEPTADA || destino == RECHAZADA || destino == CANCELADA;
             case ACEPTADA -> destino == EN_CURSO || destino == CANCELADA;
             case EN_CURSO -> destino == CONCLUIDA;
-            case RECHAZADA, CANCELADA, CONCLUIDA -> false;
+            case CONCLUIDA -> destino == EVALUADA;
+            case RECHAZADA, CANCELADA, EVALUADA -> false;
         };
     }
 

@@ -29,6 +29,12 @@ public class Usuario {
     @Column(nullable = false, length = 20)
     private Rol rol;
 
+    @Column(name = "promedio_calificacion")
+    private Double promedioCalificacion;
+
+    @Column(name = "total_evaluaciones")
+    private Integer totalEvaluaciones;
+
     public Long getId() {
         return id;
     }
@@ -83,5 +89,21 @@ public class Usuario {
 
     public void setRol(Rol rol) {
         this.rol = rol;
+    }
+
+    public double getPromedioCalificacion() {
+        return promedioCalificacion == null ? 0.0 : promedioCalificacion;
+    }
+
+    public void setPromedioCalificacion(double promedioCalificacion) {
+        this.promedioCalificacion = promedioCalificacion;
+    }
+
+    public int getTotalEvaluaciones() {
+        return totalEvaluaciones == null ? 0 : totalEvaluaciones;
+    }
+
+    public void setTotalEvaluaciones(int totalEvaluaciones) {
+        this.totalEvaluaciones = totalEvaluaciones;
     }
 }
