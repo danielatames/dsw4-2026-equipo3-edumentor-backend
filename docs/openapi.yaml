@@ -2,9 +2,22 @@ openapi: 3.0.3
 info:
   title: EduMentor Hub API
   version: 1.0.0
-  description: >
+  description: |
     API REST de la plataforma de tutorías académicas entre pares.
     Todas las respuestas de error siguen el estándar RFC 7807 (Problem Details).
+
+    **Estados de la sesión.** El ciclo de vida definido en el enunciado se implementa
+    con nombres en español. La equivalencia es:
+
+    | Enunciado | API |
+    |---|---|
+    | REQUESTED | SOLICITADA |
+    | CONFIRMED | ACEPTADA |
+    | REJECTED | RECHAZADA |
+    | CANCELLED | CANCELADA |
+    | IN_SESSION | EN_CURSO |
+    | COMPLETED | CONCLUIDA |
+    | REVIEWED | EVALUADA |
 servers:
   - url: http://localhost:8080
     description: Desarrollo local
@@ -13,10 +26,17 @@ tags:
     description: Registro e inicio de sesión
   - name: Usuarios
     description: Datos del usuario autenticado
+  - name: Sesiones
+    description: Solicitud, aceptación y seguimiento de sesiones de tutoría
+  - name: Recursos
+    description: Enlaces y materiales didácticos asociados a una sesión
+  - name: Evaluaciones
+    description: Calificación del estudiante al tutor y promedio acumulado
 security:
   - bearerAuth: []
 
 paths:
+  #Auth
   /auth/login:
     post:
       tags: [Auth]
@@ -91,6 +111,377 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  #Sesiones
+  /sesiones:
+    get:
+      tags: [Sesiones]
+      summary: Listar sesiones según el rol
+      description: >
+        ESTUDIANTE ve las sesiones que solicitó, TUTOR las que le pidieron a él
+        y COORDINADOR ve todas. Se puede filtrar por estado.
+      parameters:
+        - name: estado
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/EstadoSesion'
+      responses:
+        '200':
+          description: Lista de sesiones ordenada de la más reciente a la más antigua
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SesionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Sesiones]
+      summary: Solicitar una sesión (solo ESTUDIANTE)
+      description: >
+        Crea la sesión en estado SOLICITADA. Valida que la fecha sea futura,
+        que la sesión quepa en un bloque de disponibilidad del tutor y que no se
+        traslape con otra sesión activa del tutor ni del estudiante.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SesionRequest'
+      responses:
+        '201':
+          description: Sesión creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SesionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: La sesión se traslapa con otra del tutor o del estudiante
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '422':
+          description: Fecha en el pasado o el tutor no tiene disponibilidad en ese horario
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /sesiones/{id}:
+    parameters:
+      - $ref: '#/components/parameters/SesionId'
+    get:
+      tags: [Sesiones]
+      summary: Obtener una sesión
+      description: Solo la ven el estudiante y el tutor de la sesión, o el COORDINADOR.
+      responses:
+        '200':
+          description: Sesión encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SesionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /sesiones/{id}/aceptar:
+    parameters:
+      - $ref: '#/components/parameters/SesionId'
+    patch:
+      tags: [Sesiones]
+      summary: Aceptar una solicitud (solo el TUTOR de la sesión)
+      description: Pasa la sesión de SOLICITADA a ACEPTADA.
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionActualizada'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/TransicionInvalida'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /sesiones/{id}/rechazar:
+    parameters:
+      - $ref: '#/components/parameters/SesionId'
+    patch:
+      tags: [Sesiones]
+      summary: Rechazar una solicitud (solo el TUTOR de la sesión)
+      description: Pasa la sesión de SOLICITADA a RECHAZADA.
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionActualizada'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/TransicionInvalida'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /sesiones/{id}/cancelar:
+    parameters:
+      - $ref: '#/components/parameters/SesionId'
+    patch:
+      tags: [Sesiones]
+      summary: Cancelar una sesión (estudiante o tutor de la sesión)
+      description: >
+        Pasa la sesión de SOLICITADA o ACEPTADA a CANCELADA.
+        Solo se permite si faltan 2 horas o más para que empiece.
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionActualizada'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/TransicionInvalida'
+        '422':
+          description: Faltan menos de 2 horas para que empiece la sesión
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /sesiones/{id}/iniciar:
+    parameters:
+      - $ref: '#/components/parameters/SesionId'
+    patch:
+      tags: [Sesiones]
+      summary: Iniciar una sesión (solo el TUTOR de la sesión)
+      description: Pasa la sesión de ACEPTADA a EN_CURSO.
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionActualizada'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/TransicionInvalida'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /sesiones/{id}/concluir:
+    parameters:
+      - $ref: '#/components/parameters/SesionId'
+    patch:
+      tags: [Sesiones]
+      summary: Concluir una sesión (solo el TUTOR de la sesión)
+      description: Pasa la sesión de EN_CURSO a CONCLUIDA.
+      responses:
+        '200':
+          $ref: '#/components/responses/SesionActualizada'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/TransicionInvalida'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  #Recursos
+  /sesiones/{id}/recursos:
+    parameters:
+      - $ref: '#/components/parameters/SesionId'
+    get:
+      tags: [Recursos]
+      summary: Listar los recursos de una sesión
+      description: >
+        Disponible para el estudiante y el tutor de la sesión, y para el COORDINADOR.
+      responses:
+        '200':
+          description: Recursos de la sesión en orden de creación
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RecursoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Recursos]
+      summary: Agregar un recurso (solo el TUTOR de la sesión)
+      description: >
+        Solo se admiten recursos en sesiones ACEPTADA, EN_CURSO, CONCLUIDA o EVALUADA.
+        La URL debe empezar por http:// o https://.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecursoRequest'
+      responses:
+        '201':
+          description: Recurso creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecursoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /sesiones/{id}/recursos/{recursoId}:
+    parameters:
+      - $ref: '#/components/parameters/SesionId'
+      - name: recursoId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    delete:
+      tags: [Recursos]
+      summary: Eliminar un recurso (solo el TUTOR de la sesión)
+      responses:
+        '204':
+          description: Recurso eliminado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # Evaluaciones
+  /sesiones/{id}/evaluacion:
+    parameters:
+      - $ref: '#/components/parameters/SesionId'
+    post:
+      tags: [Evaluaciones]
+      summary: Evaluar una sesión concluida (solo el ESTUDIANTE de la sesión)
+      description: >
+        Registra la calificación de 1 a 5 estrellas, pasa la sesión de CONCLUIDA a
+        EVALUADA y recalcula el promedio acumulado del tutor. Cada sesión admite una
+        sola evaluación.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluacionRequest'
+      responses:
+        '201':
+          description: Evaluación registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluacionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      tags: [Evaluaciones]
+      summary: Consultar la evaluación de una sesión
+      description: >
+        Disponible para el estudiante y el tutor de la sesión, y para el COORDINADOR.
+        Responde 404 si la sesión todavía no fue evaluada.
+      responses:
+        '200':
+          description: Evaluación de la sesión
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluacionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /tutores/{tutorId}/calificacion:
+    get:
+      tags: [Evaluaciones]
+      summary: Promedio acumulado de calificación de un tutor
+      parameters:
+        - name: tutorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Promedio y cantidad de evaluaciones del tutor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalificacionTutorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -99,7 +490,18 @@ components:
       bearerFormat: JWT
       description: Enviar el token en el encabezado `Authorization Bearer <token>`.
 
+  parameters:
+    SesionId:
+      name: id
+      in: path
+      required: true
+      description: Identificador de la sesión de tutoría
+      schema:
+        type: integer
+        format: int64
+
   schemas:
+    #Auth y usuarios
     Rol:
       type: string
       enum: [ESTUDIANTE, TUTOR, COORDINADOR]
@@ -171,9 +573,169 @@ components:
         usuario:
           $ref: '#/components/schemas/UsuarioResponse'
 
+    #Sesiones
+    EstadoSesion:
+      type: string
+      description: >
+        Equivalencias con el enunciado: SOLICITADA=REQUESTED, ACEPTADA=CONFIRMED,
+        RECHAZADA=REJECTED, CANCELADA=CANCELLED, EN_CURSO=IN_SESSION,
+        CONCLUIDA=COMPLETED, EVALUADA=REVIEWED.
+      enum: [SOLICITADA, ACEPTADA, RECHAZADA, CANCELADA, EN_CURSO, CONCLUIDA, EVALUADA]
+
+    SesionRequest:
+      type: object
+      required: [tutorId, materiaId, fechaHora, duracionMinutos]
+      properties:
+        tutorId:
+          type: integer
+          format: int64
+          example: 2
+        materiaId:
+          type: integer
+          format: int64
+          example: 1
+        fechaHora:
+          type: string
+          format: date-time
+          description: Inicio de la sesión, sin zona horaria (hora de Costa Rica)
+          example: '2026-12-01T08:00:00'
+        duracionMinutos:
+          type: integer
+          minimum: 30
+          maximum: 180
+          example: 60
+        tema:
+          type: string
+          maxLength: 300
+          example: Repaso de JOINs
+
+    SesionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        estudianteId:
+          type: integer
+          format: int64
+        estudianteNombre:
+          type: string
+        tutorId:
+          type: integer
+          format: int64
+        tutorNombre:
+          type: string
+        materiaId:
+          type: integer
+          format: int64
+        materiaNombre:
+          type: string
+        fechaHora:
+          type: string
+          format: date-time
+        fechaFin:
+          type: string
+          format: date-time
+        duracionMinutos:
+          type: integer
+        estado:
+          $ref: '#/components/schemas/EstadoSesion'
+        tema:
+          type: string
+          nullable: true
+
+    #Recursos
+    TipoArchivo:
+      type: string
+      enum: [ENLACE, PDF, VIDEO, DOCUMENTO, PRESENTACION, OTRO]
+
+    RecursoRequest:
+      type: object
+      required: [titulo, urlRecurso, tipoArchivo]
+      properties:
+        titulo:
+          type: string
+          maxLength: 150
+          example: Guía de JOINs
+        urlRecurso:
+          type: string
+          maxLength: 500
+          pattern: '^https?://\S+$'
+          example: https://ejemplo.com/guia-joins.pdf
+        tipoArchivo:
+          $ref: '#/components/schemas/TipoArchivo'
+
+    RecursoResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sesionId:
+          type: integer
+          format: int64
+        titulo:
+          type: string
+        urlRecurso:
+          type: string
+        tipoArchivo:
+          $ref: '#/components/schemas/TipoArchivo'
+
+    # Evaluaciones
+    EvaluacionRequest:
+      type: object
+      required: [calificacionEstrellas]
+      properties:
+        calificacionEstrellas:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        comentario:
+          type: string
+          maxLength: 500
+          example: Explicó muy claro los temas.
+
+    EvaluacionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sesionId:
+          type: integer
+          format: int64
+        calificacionEstrellas:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comentario:
+          type: string
+          nullable: true
+        fechaEvaluacion:
+          type: string
+          format: date-time
+
+    CalificacionTutorResponse:
+      type: object
+      properties:
+        tutorId:
+          type: integer
+          format: int64
+        tutorNombre:
+          type: string
+        promedio:
+          type: number
+          format: double
+          example: 4.5
+        totalEvaluaciones:
+          type: integer
+          example: 8
+
+    #Errores 
     ProblemDetail:
       type: object
-      description: Error según RFC 7807
+      description: Error según RFC 7807 (Problem Details)
       properties:
         type:
           type: string
@@ -191,6 +753,11 @@ components:
         instance:
           type: string
           example: /usuarios/me
+        errores:
+          type: object
+          description: Mensajes de validación por campo (solo en respuestas 400)
+          additionalProperties:
+            type: string
 
   responses:
     BadRequest:
@@ -200,25 +767,33 @@ components:
           schema:
             $ref: '#/components/schemas/ProblemDetail'
     Unauthorized:
-      description: No autenticado o credenciales inválidas
+      description: Falta el token JWT, no es válido o las credenciales son inválidas
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetail'
     Forbidden:
-      description: Sin permisos para esta operación
+      description: El rol o el usuario no tiene permiso para esta operación
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetail'
     NotFound:
-      description: Recurso no encontrado
+      description: El recurso solicitado no existe
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetail'
     Conflict:
-      description: Conflicto con el estado actual (por ejemplo, email o carné duplicado)
+      description: >
+        Conflicto con el estado actual (por ejemplo, email o carné duplicado, o un
+        estado de la sesión que no permite la operación)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    TransicionInvalida:
+      description: El estado actual de la sesión no permite esta acción
       content:
         application/problem+json:
           schema:
@@ -229,3 +804,9 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetail'
+    SesionActualizada:
+      description: Sesión con su nuevo estado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SesionResponse'
