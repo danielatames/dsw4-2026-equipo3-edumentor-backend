@@ -60,7 +60,7 @@ El ciclo de vida del enunciado se implementa con nombres en español:
 Repositorio `dsw4-2026-equipo3-edumentor-frontend`. Corre en http://localhost:4200 y necesita este backend activo.
 
 ## Documentación
-- Especificación OpenAPI: `docs/openapi.yaml` (documento único con todos los endpoints)
+- Especificación OpenAPI: `docs/openapi.yaml`
 - Modelo Entidad-Relación: `docs/erd.md`
 
 ## Flujo de trabajo en Git
