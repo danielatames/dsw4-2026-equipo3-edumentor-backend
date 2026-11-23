@@ -1,0 +1,323 @@
+# Recursos de estudio y evaluaciones de tutoría (Persona 4).
+# Está en un archivo aparte para no pisar el trabajo de los demás;
+# al integrar, las secciones "paths" y "components" se copian a docs/openapi.yaml.
+openapi: 3.0.3
+info:
+  title: EduMentor Hub - Recursos y evaluaciones
+  version: 0.0.1
+tags:
+  - name: Recursos
+    description: Enlaces y materiales didácticos asociados a una sesión
+  - name: Evaluaciones
+    description: Calificación del estudiante al tutor y promedio acumulado
+security:
+  - bearerAuth: []
+
+paths:
+  /sesiones/{sesionId}/recursos:
+    parameters:
+      - $ref: '#/components/parameters/SesionId'
+    get:
+      tags: [Recursos]
+      summary: Listar los recursos de una sesión
+      description: >
+        Disponible para el estudiante y el tutor de la sesión, y para el COORDINADOR.
+      responses:
+        '200':
+          description: Recursos de la sesión en orden de creación
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RecursoResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    post:
+      tags: [Recursos]
+      summary: Agregar un recurso (solo el TUTOR de la sesión)
+      description: >
+        Solo se admiten recursos en sesiones ACEPTADA, EN_CURSO, CONCLUIDA o EVALUADA.
+        La URL debe empezar por http:// o https://.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecursoRequest'
+      responses:
+        '201':
+          description: Recurso creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecursoResponse'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflicto'
+
+  /sesiones/{sesionId}/recursos/{recursoId}:
+    parameters:
+      - $ref: '#/components/parameters/SesionId'
+      - name: recursoId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    delete:
+      tags: [Recursos]
+      summary: Eliminar un recurso (solo el TUTOR de la sesión)
+      responses:
+        '204':
+          description: Recurso eliminado
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+
+  /sesiones/{sesionId}/evaluacion:
+    parameters:
+      - $ref: '#/components/parameters/SesionId'
+    post:
+      tags: [Evaluaciones]
+      summary: Evaluar una sesión concluida (solo el ESTUDIANTE de la sesión)
+      description: >
+        Registra la calificación de 1 a 5 estrellas, pasa la sesión de CONCLUIDA a
+        EVALUADA y recalcula el promedio acumulado del tutor. Cada sesión admite una
+        sola evaluación.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluacionRequest'
+      responses:
+        '201':
+          description: Evaluación registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluacionResponse'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflicto'
+    get:
+      tags: [Evaluaciones]
+      summary: Consultar la evaluación de una sesión
+      description: >
+        Disponible para el estudiante y el tutor de la sesión, y para el COORDINADOR.
+        Responde 404 si la sesión todavía no fue evaluada.
+      responses:
+        '200':
+          description: Evaluación de la sesión
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluacionResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+
+  /tutores/{tutorId}/calificacion:
+    get:
+      tags: [Evaluaciones]
+      summary: Promedio acumulado de calificación de un tutor
+      parameters:
+        - name: tutorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Promedio y cantidad de evaluaciones del tutor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalificacionTutorResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    SesionId:
+      name: sesionId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+  schemas:
+    TipoArchivo:
+      type: string
+      enum: [ENLACE, PDF, VIDEO, DOCUMENTO, PRESENTACION, OTRO]
+
+    RecursoRequest:
+      type: object
+      required: [titulo, urlRecurso, tipoArchivo]
+      properties:
+        titulo:
+          type: string
+          maxLength: 150
+          example: Guía de JOINs
+        urlRecurso:
+          type: string
+          maxLength: 500
+          pattern: '^https?://\S+$'
+          example: https://ejemplo.com/guia-joins.pdf
+        tipoArchivo:
+          $ref: '#/components/schemas/TipoArchivo'
+
+    RecursoResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sesionId:
+          type: integer
+          format: int64
+        titulo:
+          type: string
+        urlRecurso:
+          type: string
+        tipoArchivo:
+          $ref: '#/components/schemas/TipoArchivo'
+
+    EvaluacionRequest:
+      type: object
+      required: [calificacionEstrellas]
+      properties:
+        calificacionEstrellas:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        comentario:
+          type: string
+          maxLength: 500
+          example: Explicó muy claro los temas.
+
+    EvaluacionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sesionId:
+          type: integer
+          format: int64
+        calificacionEstrellas:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comentario:
+          type: string
+          nullable: true
+        fechaEvaluacion:
+          type: string
+          format: date-time
+
+    CalificacionTutorResponse:
+      type: object
+      properties:
+        tutorId:
+          type: integer
+          format: int64
+        tutorNombre:
+          type: string
+        promedio:
+          type: number
+          format: double
+          example: 4.5
+        totalEvaluaciones:
+          type: integer
+          example: 8
+
+    ProblemDetail:
+      type: object
+      description: Error según RFC 7807
+      properties:
+        type:
+          type: string
+          format: uri
+          example: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        errores:
+          type: object
+          description: Mensajes de validación por campo (solo en respuestas 400)
+          additionalProperties:
+            type: string
+
+  responses:
+    SolicitudInvalida:
+      description: Datos inválidos (validación de campos)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    NoAutenticado:
+      description: Falta el token JWT o no es válido
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    SinPermiso:
+      description: El usuario no tiene permisos sobre esta sesión
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    NoEncontrado:
+      description: La sesión, el recurso o la evaluación no existen
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    Conflicto:
+      description: El estado actual de la sesión no permite la operación
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
