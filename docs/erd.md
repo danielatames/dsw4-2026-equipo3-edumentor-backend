@@ -13,6 +13,21 @@ erDiagram
         DOUBLE promedio_calificacion "promedio acumulado del tutor"
         INT total_evaluaciones "cantidad de evaluaciones recibidas"
     }
+    MATERIA {
+        BIGINT id PK
+        VARCHAR_20 codigo_materia UK "NOT NULL"
+        VARCHAR_120 nombre_materia "NOT NULL"
+        VARCHAR_120 carrera "NOT NULL"
+        INT creditos "NOT NULL"
+    }
+    DISPONIBILIDAD_TUTOR {
+        BIGINT id PK
+        BIGINT tutor_id FK "NOT NULL"
+        VARCHAR_10 dia_semana "NOT NULL: MONDAY a SUNDAY"
+        TIME hora_inicio "NOT NULL"
+        TIME hora_fin "NOT NULL, mayor que hora_inicio"
+        BOOLEAN esta_activo "NOT NULL, por defecto true"
+    }
     SESION_TUTORIA {
         BIGINT id PK
         BIGINT estudiante_id FK "NOT NULL"
@@ -45,5 +60,3 @@ erDiagram
     SESION_TUTORIA ||--o{ RECURSO_ESTUDIO : "tiene (1:N)"
     SESION_TUTORIA ||--o| EVALUACION_TUTORIA : "recibe (1:0..1)"
 ```
-
-Las demás entidades (Materia, DisponibilidadTutor y SesionTutoria) las agrega cada responsable en su rama; el diagrama final se integra al cierre.
