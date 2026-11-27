@@ -62,6 +62,7 @@ Repositorio `dsw4-2026-equipo3-edumentor-frontend`. Corre en http://localhost:42
 ## Documentación
 - Especificación OpenAPI: `docs/openapi.yaml`
 - Modelo Entidad-Relación: `docs/erd.md`
+- Diagrama de clases UML: `docs/diagrama-clases.md`
 
 ## Flujo de trabajo en Git
 - Prohibido hacer commits directos a `main`.
