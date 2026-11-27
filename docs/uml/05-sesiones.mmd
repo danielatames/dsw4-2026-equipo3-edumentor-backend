@@ -1,0 +1,93 @@
+%%{init: {"markdownAutoWrap": false}}%%
+classDiagram
+    direction TB
+    note for SesionTutoriaController "Ruta base: /sesiones"
+    class SesionTutoriaController {
+        <<RestController>>
+        -SesionTutoriaService sesiones
+        +listar(EstadoSesion estado, Authentication auth) List~SesionResponse~
+        +obtener(Long id, Authentication auth) SesionResponse
+        +solicitar(SesionRequest req, Authentication auth) ResponseEntity~SesionResponse~
+        +aceptar(Long id, Authentication auth) SesionResponse
+        +rechazar(Long id, Authentication auth) SesionResponse
+        +iniciar(Long id, Authentication auth) SesionResponse
+        +concluir(Long id, Authentication auth) SesionResponse
+        +cancelar(Long id, Authentication auth) SesionResponse
+    }
+    class SesionTutoriaService {
+        <<Service>>
+        -SesionTutoriaRepository sesiones
+        -UsuarioRepository usuarios
+        -MateriaRepository materias
+        -DisponibilidadTutorService disponibilidades
+        -Clock reloj
+        +listar(String email, EstadoSesion estado) List~SesionResponse~
+        +obtener(String email, Long id) SesionResponse
+        +solicitar(String emailEstudiante, SesionRequest req) SesionResponse
+        +aceptar(String emailTutor, Long id) SesionResponse
+        +rechazar(String emailTutor, Long id) SesionResponse
+        +iniciar(String emailTutor, Long id) SesionResponse
+        +concluir(String emailTutor, Long id) SesionResponse
+        +cancelar(String email, Long id) SesionResponse
+    }
+    class SesionTutoriaRepository {
+        <<Repository>>
+        +findById(Long id) Optional~SesionTutoria~
+        +findByEstudianteIdOrderByFechaHoraDesc(Long estudianteId) List~SesionTutoria~
+        +findByTutorIdOrderByFechaHoraDesc(Long tutorId) List~SesionTutoria~
+        +findAllByOrderByFechaHoraDesc() List~SesionTutoria~
+        +buscarDelTutorEnRango(Long tutorId, Collection estados, LocalDateTime desde, LocalDateTime hasta) List~SesionTutoria~
+        +buscarDelEstudianteEnRango(Long estudianteId, Collection estados, LocalDateTime desde, LocalDateTime hasta) List~SesionTutoria~
+    }
+    class DisponibilidadTutorService {
+        <<Service>>
+        +estaDisponible(Long tutorId, LocalDateTime fechaHora, int duracionMinutos) boolean
+    }
+    class MateriaRepository {
+        <<Repository>>
+    }
+    class UsuarioRepository {
+        <<Repository>>
+    }
+    class SesionTutoria {
+        <<Entity>>
+    }
+    class EstadoSesion {
+        <<enumeration>>
+        +puedePasarA(EstadoSesion destino) boolean
+        +ocupaHorario() boolean
+    }
+    class SesionRequest {
+        <<DTO>>
+        +Long tutorId
+        +Long materiaId
+        +LocalDateTime fechaHora
+        +Integer duracionMinutos
+        +String tema
+    }
+    class SesionResponse {
+        <<DTO>>
+        +Long id
+        +Long estudianteId
+        +String estudianteNombre
+        +Long tutorId
+        +String tutorNombre
+        +Long materiaId
+        +String materiaNombre
+        +LocalDateTime fechaHora
+        +LocalDateTime fechaFin
+        +int duracionMinutos
+        +EstadoSesion estado
+        +String tema
+    }
+
+    SesionTutoriaController ..> SesionTutoriaService
+    SesionTutoriaController ..> SesionRequest
+    SesionTutoriaService ..> SesionTutoriaRepository
+    SesionTutoriaService ..> UsuarioRepository
+    SesionTutoriaService ..> MateriaRepository
+    SesionTutoriaService ..> DisponibilidadTutorService : estaDisponible()
+    SesionTutoriaService ..> EstadoSesion : valida transiciones
+    SesionTutoriaService ..> SesionResponse : crea
+    SesionTutoriaRepository ..> SesionTutoria : gestiona
+    SesionResponse ..> SesionTutoria : se construye desde

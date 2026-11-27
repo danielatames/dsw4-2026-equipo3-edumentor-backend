@@ -1,0 +1,110 @@
+%%{init: {"markdownAutoWrap": false}}%%
+classDiagram
+    direction TB
+    note for RecursoEstudioController "Ruta base: /sesiones/{sesionId}/recursos"
+    class RecursoEstudioController {
+        <<RestController>>
+        -RecursoEstudioService recursos
+        +listar(Long sesionId, Authentication auth) List~RecursoResponse~
+        +agregar(Long sesionId, RecursoRequest req, Authentication auth) ResponseEntity~RecursoResponse~
+        +eliminar(Long sesionId, Long recursoId, Authentication auth) ResponseEntity~Void~
+    }
+    class RecursoEstudioService {
+        <<Service>>
+        -RecursoEstudioRepository recursos
+        -SesionTutoriaRepository sesiones
+        -UsuarioRepository usuarios
+        +listar(String email, Long sesionId) List~RecursoResponse~
+        +agregar(String emailTutor, Long sesionId, RecursoRequest req) RecursoResponse
+        +eliminar(String emailTutor, Long sesionId, Long recursoId) void
+    }
+    class RecursoEstudioRepository {
+        <<Repository>>
+        +findBySesionIdOrderByIdAsc(Long sesionId) List~RecursoEstudio~
+        +findByIdAndSesionId(Long id, Long sesionId) Optional~RecursoEstudio~
+    }
+    class EvaluacionTutoriaController {
+        <<RestController>>
+        -EvaluacionTutoriaService evaluaciones
+        +evaluar(Long sesionId, EvaluacionRequest req, Authentication auth) ResponseEntity~EvaluacionResponse~
+        +obtener(Long sesionId, Authentication auth) EvaluacionResponse
+        +calificacionDelTutor(Long tutorId) CalificacionTutorResponse
+    }
+    class EvaluacionTutoriaService {
+        <<Service>>
+        -EvaluacionTutoriaRepository evaluaciones
+        -SesionTutoriaRepository sesiones
+        -UsuarioRepository usuarios
+        -Clock reloj
+        +evaluar(String emailEstudiante, Long sesionId, EvaluacionRequest req) EvaluacionResponse
+        +obtener(String email, Long sesionId) EvaluacionResponse
+        +calificacionDelTutor(Long tutorId) CalificacionTutorResponse
+    }
+    class EvaluacionTutoriaRepository {
+        <<Repository>>
+        +findBySesionId(Long sesionId) Optional~EvaluacionTutoria~
+        +promedioDelTutor(Long tutorId) Double
+    }
+    class SesionTutoriaRepository {
+        <<Repository>>
+    }
+    class UsuarioRepository {
+        <<Repository>>
+    }
+    class RecursoEstudio {
+        <<Entity>>
+    }
+    class EvaluacionTutoria {
+        <<Entity>>
+    }
+    class RecursoRequest {
+        <<DTO>>
+        +String titulo
+        +String urlRecurso
+        +TipoArchivo tipoArchivo
+    }
+    class RecursoResponse {
+        <<DTO>>
+        +Long id
+        +Long sesionId
+        +String titulo
+        +String urlRecurso
+        +TipoArchivo tipoArchivo
+    }
+    class EvaluacionRequest {
+        <<DTO>>
+        +Integer calificacionEstrellas
+        +String comentario
+    }
+    class EvaluacionResponse {
+        <<DTO>>
+        +Long id
+        +Long sesionId
+        +int calificacionEstrellas
+        +String comentario
+        +LocalDateTime fechaEvaluacion
+    }
+    class CalificacionTutorResponse {
+        <<DTO>>
+        +Long tutorId
+        +String tutorNombre
+        +double promedio
+        +int totalEvaluaciones
+    }
+
+    RecursoEstudioController ..> RecursoEstudioService
+    RecursoEstudioController ..> RecursoRequest
+    RecursoEstudioService ..> RecursoEstudioRepository
+    RecursoEstudioService ..> SesionTutoriaRepository
+    RecursoEstudioService ..> UsuarioRepository
+    RecursoEstudioService ..> RecursoResponse : crea
+    RecursoEstudioRepository ..> RecursoEstudio : gestiona
+
+    EvaluacionTutoriaController ..> EvaluacionTutoriaService
+    EvaluacionTutoriaController ..> EvaluacionRequest
+    EvaluacionTutoriaService ..> EvaluacionTutoriaRepository
+    EvaluacionTutoriaService ..> SesionTutoriaRepository
+    EvaluacionTutoriaService ..> UsuarioRepository : actualiza promedio
+    EvaluacionTutoriaService ..> EvaluacionResponse : crea
+    EvaluacionTutoriaService ..> CalificacionTutorResponse : crea
+    EvaluacionTutoriaRepository ..> EvaluacionTutoria : gestiona
