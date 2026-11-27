@@ -1,0 +1,40 @@
+%%{init: {"markdownAutoWrap": false}}%%
+classDiagram
+    direction TB
+    class RuntimeException
+    class ReglaNegocioException {
+        -HttpStatus status
+        +ReglaNegocioException(HttpStatus status, String mensaje)
+        +ReglaNegocioException(String mensaje)
+        +getStatus() HttpStatus
+    }
+    class ConflictoNegocioException
+    note for ConflictoNegocioException "Responde 409 Conflict"
+    class RecursoNoEncontradoException
+    note for RecursoNoEncontradoException "Responde 404 Not Found"
+    class GlobalExceptionHandler {
+        <<RestControllerAdvice>>
+        +manejarReglaNegocio(ReglaNegocioException ex) ProblemDetail
+        +manejarRestricciones(ConstraintViolationException ex) ProblemDetail
+        +manejarIntegridad(DataIntegrityViolationException ex) ProblemDetail
+        +manejarAccesoDenegado(AccessDeniedException ex) ProblemDetail
+        +manejarNoAutenticado(AuthenticationException ex) ProblemDetail
+        +manejarGenerico(Exception ex) ProblemDetail
+        #handleMethodArgumentNotValid(...) ResponseEntity
+    }
+    class ResponseEntityExceptionHandler {
+        <<abstract>>
+    }
+    class ProblemDetail {
+        +String title
+        +int status
+        +String detail
+        +URI instance
+    }
+
+    RuntimeException <|-- ReglaNegocioException
+    ReglaNegocioException <|-- ConflictoNegocioException
+    ReglaNegocioException <|-- RecursoNoEncontradoException
+    ResponseEntityExceptionHandler <|-- GlobalExceptionHandler
+    GlobalExceptionHandler ..> ReglaNegocioException : captura
+    GlobalExceptionHandler ..> ProblemDetail : crea

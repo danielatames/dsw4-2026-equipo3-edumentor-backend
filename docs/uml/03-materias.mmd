@@ -1,0 +1,70 @@
+%%{init: {"markdownAutoWrap": false}}%%
+classDiagram
+    direction TB
+    note for MateriaController "Ruta base: /materias"
+    class MateriaController {
+        <<RestController>>
+        -MateriaService materias
+        +listar(String carrera, String nombre, int pagina, int tamano) PaginaResponse~MateriaResponse~
+        +obtener(Long id) MateriaResponse
+        +crear(MateriaRequest req) ResponseEntity~MateriaResponse~
+        +actualizar(Long id, MateriaRequest req) MateriaResponse
+        +eliminar(Long id) ResponseEntity~Void~
+    }
+    class MateriaService {
+        <<Service>>
+        -MateriaRepository materias
+        +listar(String carrera, String nombre, int pagina, int tamano) PaginaResponse~MateriaResponse~
+        +obtener(Long id) MateriaResponse
+        +crear(MateriaRequest req) MateriaResponse
+        +actualizar(Long id, MateriaRequest req) MateriaResponse
+        +eliminar(Long id) void
+        -normalizarCodigo(String codigo) String
+    }
+    class MateriaRepository {
+        <<Repository>>
+        +existsByCodigoMateria(String codigo) boolean
+        +existsByCodigoMateriaAndIdNot(String codigo, Long id) boolean
+        +buscar(String carrera, String nombre, Pageable pageable) Page~Materia~
+    }
+    class JpaRepository {
+        <<interface>>
+    }
+    class Materia {
+        <<Entity>>
+    }
+    class MateriaRequest {
+        <<DTO>>
+        +String codigoMateria
+        +String nombreMateria
+        +String carrera
+        +Integer creditos
+    }
+    class MateriaResponse {
+        <<DTO>>
+        +Long id
+        +String codigoMateria
+        +String nombreMateria
+        +String carrera
+        +Integer creditos
+        +de(Materia m)$ MateriaResponse
+    }
+    class PaginaResponse~T~ {
+        <<DTO>>
+        +List~T~ contenido
+        +int pagina
+        +int tamano
+        +long totalElementos
+        +int totalPaginas
+        +de(Page~E~ page, Function convertir)$ PaginaResponse~T~
+    }
+
+    MateriaController ..> MateriaService
+    MateriaController ..> MateriaRequest
+    MateriaService ..> MateriaRepository
+    MateriaService ..> MateriaResponse : crea
+    MateriaService ..> PaginaResponse : crea
+    MateriaRepository ..|> JpaRepository
+    MateriaRepository ..> Materia : gestiona
+    MateriaResponse ..> Materia : se construye desde
+    PaginaResponse o-- MateriaResponse : contenido

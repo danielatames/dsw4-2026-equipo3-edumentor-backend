@@ -1,0 +1,96 @@
+%%{init: {"markdownAutoWrap": false}}%%
+classDiagram
+    class Usuario {
+        <<Entity>>
+        -Long id
+        -String carne
+        -String email
+        -String passwordHash
+        -String nombre
+        -String apellido
+        -Rol rol
+        -Double promedioCalificacion
+        -Integer totalEvaluaciones
+    }
+    class Materia {
+        <<Entity>>
+        -Long id
+        -String codigoMateria
+        -String nombreMateria
+        -String carrera
+        -Integer creditos
+    }
+    class DisponibilidadTutor {
+        <<Entity>>
+        -Long id
+        -Usuario tutor
+        -DayOfWeek diaSemana
+        -LocalTime horaInicio
+        -LocalTime horaFin
+        -boolean estaActivo
+    }
+    class SesionTutoria {
+        <<Entity>>
+        -Long id
+        -Usuario estudiante
+        -Usuario tutor
+        -Materia materia
+        -LocalDateTime fechaHora
+        -int duracionMinutos
+        -EstadoSesion estado
+        -String tema
+        -LocalDateTime fechaCreacion
+    }
+    class RecursoEstudio {
+        <<Entity>>
+        -Long id
+        -SesionTutoria sesion
+        -String titulo
+        -String urlRecurso
+        -TipoArchivo tipoArchivo
+    }
+    class EvaluacionTutoria {
+        <<Entity>>
+        -Long id
+        -SesionTutoria sesion
+        -int calificacionEstrellas
+        -String comentario
+        -LocalDateTime fechaEvaluacion
+    }
+    class Rol {
+        <<enumeration>>
+        ESTUDIANTE
+        TUTOR
+        COORDINADOR
+    }
+    class EstadoSesion {
+        <<enumeration>>
+        SOLICITADA
+        ACEPTADA
+        RECHAZADA
+        CANCELADA
+        EN_CURSO
+        CONCLUIDA
+        EVALUADA
+        +puedePasarA(EstadoSesion destino) boolean
+        +ocupaHorario() boolean
+    }
+    class TipoArchivo {
+        <<enumeration>>
+        ENLACE
+        PDF
+        VIDEO
+        DOCUMENTO
+        PRESENTACION
+        OTRO
+    }
+
+    DisponibilidadTutor "0..*" --> "1" Usuario : tutor
+    SesionTutoria "0..*" --> "1" Usuario : estudiante
+    SesionTutoria "0..*" --> "1" Usuario : tutor
+    SesionTutoria "0..*" --> "1" Materia : materia
+    RecursoEstudio "0..*" --> "1" SesionTutoria : sesion
+    EvaluacionTutoria "0..1" --> "1" SesionTutoria : sesion
+    Usuario --> Rol
+    SesionTutoria --> EstadoSesion
+    RecursoEstudio --> TipoArchivo

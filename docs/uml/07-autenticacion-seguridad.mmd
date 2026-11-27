@@ -1,0 +1,113 @@
+%%{init: {"markdownAutoWrap": false}}%%
+classDiagram
+    direction TB
+    note for AuthController "Ruta base: /auth"
+    class AuthController {
+        <<RestController>>
+        -AuthService auth
+        +login(LoginRequest req) AuthResponse
+        +register(RegisterRequest req) ResponseEntity~AuthResponse~
+    }
+    note for UsuarioController "Ruta base: /usuarios"
+    class UsuarioController {
+        <<RestController>>
+        -AuthService auth
+        +me(Authentication auth) UsuarioResponse
+    }
+    class AuthService {
+        <<Service>>
+        -UsuarioRepository usuarios
+        -PasswordEncoder encoder
+        -JwtService jwt
+        +registrar(RegisterRequest req) AuthResponse
+        +login(LoginRequest req) AuthResponse
+        +perfil(String email) UsuarioResponse
+    }
+    class UsuarioRepository {
+        <<Repository>>
+        +findByEmail(String email) Optional~Usuario~
+        +existsByEmail(String email) boolean
+        +existsByCarne(String carne) boolean
+    }
+    class Usuario {
+        <<Entity>>
+    }
+    class JwtService {
+        <<Service>>
+        -SecretKey key
+        -long expirationMs
+        +generarToken(Usuario usuario) String
+        +extraerClaims(String token) Claims
+        +esValido(String token) boolean
+    }
+    class JwtAuthFilter {
+        <<Component>>
+        -JwtService jwtService
+        #doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain) void
+    }
+    class OncePerRequestFilter {
+        <<abstract>>
+    }
+    class SecurityConfig {
+        <<Configuration>>
+        +passwordEncoder() PasswordEncoder
+        +filterChain(HttpSecurity http, JwtAuthFilter filtro, ProblemDetailSecurityHandler handler) SecurityFilterChain
+        +corsConfigurationSource() CorsConfigurationSource
+    }
+    class ProblemDetailSecurityHandler {
+        <<Component>>
+        +commence(...) void
+        +handle(...) void
+    }
+    class AuthenticationEntryPoint {
+        <<interface>>
+    }
+    class AccessDeniedHandler {
+        <<interface>>
+    }
+    class LoginRequest {
+        <<DTO>>
+        +String email
+        +String password
+    }
+    class RegisterRequest {
+        <<DTO>>
+        +String carne
+        +String email
+        +String password
+        +String nombre
+        +String apellido
+        +Rol rol
+    }
+    class AuthResponse {
+        <<DTO>>
+        +String token
+        +String tipo
+        +UsuarioResponse usuario
+    }
+    class UsuarioResponse {
+        <<DTO>>
+        +Long id
+        +String carne
+        +String email
+        +String nombre
+        +String apellido
+        +Rol rol
+        +de(Usuario u)$ UsuarioResponse
+    }
+
+    AuthController ..> AuthService
+    AuthController ..> LoginRequest
+    AuthController ..> RegisterRequest
+    UsuarioController ..> AuthService
+    AuthService ..> UsuarioRepository
+    AuthService ..> JwtService
+    AuthService ..> AuthResponse : crea
+    UsuarioRepository ..> Usuario : gestiona
+    AuthResponse o-- UsuarioResponse : usuario
+    JwtAuthFilter --|> OncePerRequestFilter
+    JwtAuthFilter ..> JwtService
+    SecurityConfig ..> JwtAuthFilter
+    SecurityConfig ..> ProblemDetailSecurityHandler
+    ProblemDetailSecurityHandler ..|> AuthenticationEntryPoint
+    ProblemDetailSecurityHandler ..|> AccessDeniedHandler

@@ -1,0 +1,71 @@
+%%{init: {"markdownAutoWrap": false}}%%
+classDiagram
+    direction TB
+    note for DisponibilidadTutorController "Ruta base: /disponibilidades"
+    class DisponibilidadTutorController {
+        <<RestController>>
+        -DisponibilidadTutorService disponibilidades
+        +listarActivas() List~DisponibilidadResponse~
+        +listarPorTutor(Long tutorId) List~DisponibilidadResponse~
+        +listarMias(Authentication auth) List~DisponibilidadResponse~
+        +crear(DisponibilidadRequest req, Authentication auth) ResponseEntity~DisponibilidadResponse~
+        +actualizar(Long id, DisponibilidadRequest req, Authentication auth) DisponibilidadResponse
+        +cambiarEstado(Long id, EstadoDisponibilidadRequest req, Authentication auth) DisponibilidadResponse
+    }
+    class DisponibilidadTutorService {
+        <<Service>>
+        -DisponibilidadTutorRepository disponibilidades
+        -UsuarioRepository usuarios
+        +listarActivas() List~DisponibilidadResponse~
+        +listarPorTutor(Long tutorId) List~DisponibilidadResponse~
+        +listarMias(String emailTutor) List~DisponibilidadResponse~
+        +crear(String emailTutor, DisponibilidadRequest req) DisponibilidadResponse
+        +actualizar(String emailTutor, Long id, DisponibilidadRequest req) DisponibilidadResponse
+        +cambiarEstado(String emailTutor, Long id, boolean activo) DisponibilidadResponse
+        +estaDisponible(Long tutorId, LocalDateTime fechaHora, int duracionMinutos) boolean
+        -validarHorario(LocalTime inicio, LocalTime fin) void
+        -validarSinSolape(Long tutorId, DayOfWeek dia, LocalTime inicio, LocalTime fin, Long idExcluido) void
+    }
+    class DisponibilidadTutorRepository {
+        <<Repository>>
+        +findByEstaActivoTrue() List~DisponibilidadTutor~
+        +findByTutorId(Long tutorId) List~DisponibilidadTutor~
+        +findByTutorIdAndEstaActivoTrue(Long tutorId) List~DisponibilidadTutor~
+        +findByTutorIdAndDiaSemanaAndEstaActivoTrue(Long tutorId, DayOfWeek dia) List~DisponibilidadTutor~
+    }
+    class UsuarioRepository {
+        <<Repository>>
+    }
+    class DisponibilidadTutor {
+        <<Entity>>
+    }
+    class DisponibilidadRequest {
+        <<DTO>>
+        +DayOfWeek diaSemana
+        +LocalTime horaInicio
+        +LocalTime horaFin
+    }
+    class EstadoDisponibilidadRequest {
+        <<DTO>>
+        +Boolean activo
+    }
+    class DisponibilidadResponse {
+        <<DTO>>
+        +Long id
+        +Long tutorId
+        +String tutorNombre
+        +DayOfWeek diaSemana
+        +LocalTime horaInicio
+        +LocalTime horaFin
+        +boolean estaActivo
+        +de(DisponibilidadTutor d)$ DisponibilidadResponse
+    }
+
+    DisponibilidadTutorController ..> DisponibilidadTutorService
+    DisponibilidadTutorController ..> DisponibilidadRequest
+    DisponibilidadTutorController ..> EstadoDisponibilidadRequest
+    DisponibilidadTutorService ..> DisponibilidadTutorRepository
+    DisponibilidadTutorService ..> UsuarioRepository
+    DisponibilidadTutorService ..> DisponibilidadResponse : crea
+    DisponibilidadTutorRepository ..> DisponibilidadTutor : gestiona
+    DisponibilidadResponse ..> DisponibilidadTutor : se construye desde

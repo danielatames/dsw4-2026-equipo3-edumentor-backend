@@ -1,0 +1,52 @@
+%%{init: {"markdownAutoWrap": false}}%%
+classDiagram
+    direction LR
+
+    class AuthController:::controller
+    class UsuarioController:::controller
+    class MateriaController:::controller
+    class DisponibilidadTutorController:::controller
+    class SesionTutoriaController:::controller
+    class RecursoEstudioController:::controller
+    class EvaluacionTutoriaController:::controller
+
+    class AuthService:::service
+    class MateriaService:::service
+    class DisponibilidadTutorService:::service
+    class SesionTutoriaService:::service
+    class RecursoEstudioService:::service
+    class EvaluacionTutoriaService:::service
+
+    class UsuarioRepository:::repo
+    class MateriaRepository:::repo
+    class DisponibilidadTutorRepository:::repo
+    class SesionTutoriaRepository:::repo
+    class RecursoEstudioRepository:::repo
+    class EvaluacionTutoriaRepository:::repo
+
+    AuthController ..> AuthService
+    UsuarioController ..> AuthService
+    MateriaController ..> MateriaService
+    DisponibilidadTutorController ..> DisponibilidadTutorService
+    SesionTutoriaController ..> SesionTutoriaService
+    RecursoEstudioController ..> RecursoEstudioService
+    EvaluacionTutoriaController ..> EvaluacionTutoriaService
+
+    AuthService ..> UsuarioRepository
+    MateriaService ..> MateriaRepository
+    DisponibilidadTutorService ..> DisponibilidadTutorRepository
+    DisponibilidadTutorService ..> UsuarioRepository
+    SesionTutoriaService ..> SesionTutoriaRepository
+    SesionTutoriaService ..> UsuarioRepository
+    SesionTutoriaService ..> MateriaRepository
+    SesionTutoriaService ..> DisponibilidadTutorService : estaDisponible()
+    RecursoEstudioService ..> RecursoEstudioRepository
+    RecursoEstudioService ..> SesionTutoriaRepository
+    RecursoEstudioService ..> UsuarioRepository
+    EvaluacionTutoriaService ..> EvaluacionTutoriaRepository
+    EvaluacionTutoriaService ..> SesionTutoriaRepository
+    EvaluacionTutoriaService ..> UsuarioRepository
+
+    classDef controller fill:#E8F0FE,stroke:#1A4FA0
+    classDef service fill:#E6F4EA,stroke:#1E7B34
+    classDef repo fill:#FEF7E0,stroke:#A06A00
